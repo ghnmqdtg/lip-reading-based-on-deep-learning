@@ -3,7 +3,8 @@ import sys
 import h5py
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import tensorflow as tf
+import tensorflow_io as tfio
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
@@ -81,9 +82,10 @@ def prepare_dataset():
 
 
 def append2h5py(X_train, X_test, y_train, y_test):
-    h5file_path = f'{config.INPUT_DATA_PATH}/dataset.h5'
+    filename = config.H5FILE
 
-    with h5py.File(h5file_path, "a") as h5file:
+    with h5py.File(filename, "a") as h5file:
+        # Save X_train data
         if not "X_train" in h5file:
             h5file.create_dataset("X_train", data=X_train,
                                   compression="gzip", chunks=True, maxshape=(None, 150, 96, 96))
@@ -92,6 +94,7 @@ def append2h5py(X_train, X_test, y_train, y_test):
                 (h5file["X_train"].shape[0] + X_train.shape[0]), axis=0)
             h5file["X_train"][-X_train.shape[0]:] = X_train
 
+        # Save X_test data
         if not "X_test" in h5file:
             h5file.create_dataset("X_test", data=X_test,
                                   compression="gzip", chunks=True, maxshape=(None, 150, 96, 96))
@@ -100,27 +103,59 @@ def append2h5py(X_train, X_test, y_train, y_test):
                 (h5file["X_test"].shape[0] + X_test.shape[0]), axis=0)
             h5file["X_test"][-X_test.shape[0]:] = X_test
 
+        # Save y_train data
         if not "y_train" in h5file:
             h5file.create_dataset("y_train", data=y_train,
-                                  compression="gzip", chunks=True, maxshape=(None, 150, 96, 96))
+                                  compression="gzip", chunks=True, maxshape=(None, 1))
         else:
             h5file["y_train"].resize(
                 (h5file["y_train"].shape[0] + y_train.shape[0]), axis=0)
             h5file["y_train"][-y_train.shape[0]:] = y_train
 
+        # Save y_test data
         if not "y_test" in h5file:
             h5file.create_dataset("y_test", data=y_test,
-                                  compression="gzip", chunks=True, maxshape=(None, 150, 96, 96))
+                                  compression="gzip", chunks=True, maxshape=(None, 1))
         else:
             h5file["y_test"].resize(
                 (h5file["y_test"].shape[0] + y_test.shape[0]), axis=0)
             h5file["y_test"][-y_test.shape[0]:] = y_test
-        
+
         h5file.close()
+
+
+class DataLoader():
+
+    @staticmethod
+    def load_data():
+        '''
+        Load the dataset
+            This dataset consists of X_train,
+            y_train, X_test and y_test, four `.npy` files. We will save
+            the dataset into `.npy` file.
+        '''
+
+        hdf5_file = config.H5FILE
+
+        X_train = tfio.IODataset.from_hdf5(
+            hdf5_file, dataset="/trainnoise")
+        y_train = tfio.IODataset.from_hdf5(
+            hdf5_file, dataset="/trainclean")
+        X_test = tfio.IODataset.from_hdf5(
+            hdf5_file, dataset="/valnoise")
+        y_test = tfio.IODataset.from_hdf5(
+            hdf5_file, dataset="/valclean")
+
+        train = tf.data.Dataset.zip((X_train, y_train)).batch(
+            config.BATCH_SIZE, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
+        test = tf.data.Dataset.zip((X_test, y_test)).batch(
+            config.BATCH_SIZE, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
+
+        return train, test
 
 
 if __name__ == '__main__':
     # print(load_label_csv())
     # load_npz()
-    prepare_dataset()
+    # prepare_dataset()
     # append2h5py()
