@@ -12,5 +12,6 @@ BATCH_SIZE = 5
 # Settings for training
 MODEL = "3DCONV"
 MODEL_NAME = f'LIPREADING_{MODEL}'
-PATH_CURVE = f'./Training_results/Curve/{MODEL_NAME}.png'
-PATH_WEIGHTS = f'./Training_results/Weights/{MODEL_NAME}'
+TRAINING_FROM_SCRATCH = True
+PATH_CURVE = f'./training_results/Curve/{MODEL_NAME}.png'
+PATH_WEIGHTS = f'./training_results/Weights/{MODEL_NAME}'

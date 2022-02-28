@@ -3,7 +3,7 @@ import sys
 from tcn import TCN, tcn_full_summary
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import datasets, layers, optimizers, Sequential, metrics
+from tensorflow.keras import layers, Sequential, metrics, regularizers
 import matplotlib.pyplot as plt
 
 # Adding the parent directory to the sys.path
@@ -99,20 +99,21 @@ def ResNet34():
 class Lipreading(keras.Model):
     def __init__(self, input_shape=(120, 96, 96, 1)):
         super(Lipreading, self).__init__()
-
+        self.input_spec = tf.keras.layers.InputSpec(
+            shape=(None, 120, 96, 96, 1))
         self.frontend = Sequential([
             layers.Conv3D(1, (1, 1, 1), strides=(
-                1, 1, 1), activation='relu', input_shape=input_shape),
+                1, 1, 1), activation='relu', input_shape=input_shape, kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4)),
             layers.BatchNormalization(),
             layers.MaxPool3D(),
             # layers.Dropout(0.5),
             layers.Conv3D(1, (1, 1, 1), strides=(
-                1, 1, 1), activation='relu', input_shape=input_shape),
+                1, 1, 1), activation='relu', input_shape=input_shape, kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4)),
             layers.BatchNormalization(),
             layers.MaxPool3D(),
             # layers.Dropout(0.5),
             layers.Conv3D(1, (1, 1, 1), strides=(
-                1, 1, 1), activation='relu', input_shape=input_shape),
+                1, 1, 1), activation='relu', input_shape=input_shape, kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4)),
             layers.BatchNormalization(),
             layers.MaxPool3D(),
             # layers.Dropout(0.5)
@@ -120,13 +121,13 @@ class Lipreading(keras.Model):
 
         self.trunk = ResNet18()
         self.trunk.build(input_shape=(75, 12, 12, 1))
-
+        self.bn_01 = layers.BatchNormalization()
         self.backend_out = 10
         self.tcn = TCN(input_shape=(30, self.backend_out),
-        # self.tcn = TCN(input_shape=(15, self.backend_out),
+                       # self.tcn = TCN(input_shape=(15, self.backend_out),
                        nb_filters=20,
                        dropout_rate=0.2
-                        )
+                       )
 
     def call(self, x):
         B, T, H, W, C = x.shape
@@ -140,6 +141,7 @@ class Lipreading(keras.Model):
         x = threeD_to_2D_tensor(x)
         # print(x.shape)
         x = self.trunk(x)
+        x = self.bn_01(x)
         # print(x.shape)
         x = tf.reshape(x, (B, Tnew, x.shape[1]))
         # print(x.shape)

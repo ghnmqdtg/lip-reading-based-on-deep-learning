@@ -7,16 +7,23 @@ from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt
 import config
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
-if __name__ == '__main__':
+def model_training(verbose=True):
     train_set, test_set = DataLoader().load_data()
     input_shape = (120, 96, 96, 1)
     model = Lipreading(input_shape)
 
+    if not config.TRAINING_FROM_SCRATCH:
+        try:
+            model = tf.keras.models.load_model(config.PATH_WEIGHTS)
+        except:
+            pass
+
     # model.build((5, 120, 96, 96, 1))
     # model.summary()
-    
+
     optim = Adam(learning_rate=0.00001, beta_1=0.9, beta_2=0.999,
                  epsilon=1e-07, decay=0.0, amsgrad=True, name='Adam')
     model.compile(loss='categorical_crossentropy',
@@ -27,7 +34,7 @@ if __name__ == '__main__':
     earlytopping = EarlyStopping(monitor='loss', patience=10)
     checkpoint = ModelCheckpoint(filepath=config.PATH_WEIGHTS,
                                  monitor='acc',
-                                 verbose=True,
+                                 verbose=verbose,
                                  save_best_only=True,
                                  save_weights_only=False,
                                  mode='auto')
@@ -36,7 +43,7 @@ if __name__ == '__main__':
                         validation_split=0,
                         epochs=config.EPOCH_NUM,
                         batch_size=config.BATCH_SIZE,
-                        verbose=1,
+                        verbose=1 if verbose else 0,
                         callbacks=[checkpoint],
                         validation_data=test_set)
 
@@ -61,4 +68,11 @@ if __name__ == '__main__':
     plt.close()
     print(
         f'Result saved into {config.PATH_CURVE}')
-    plt.show()
+    
+    if verbose:
+        plt.show()
+
+
+
+if __name__ == '__main__':
+    model_training(verbose=True)
