@@ -1,6 +1,7 @@
 import os
 from lipreading.model import Lipreading
 from utils.dataset import DataLoader
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
@@ -73,6 +74,13 @@ def model_training(verbose=True):
         plt.show()
 
 
+def model_validation(verbose=True):
+    train_set, test_set = DataLoader().load_data()
+    train_set_contents = list(train_set.as_numpy_iterator())
+
+    model = tf.keras.models.load_model(config.PATH_WEIGHTS)
+    model.evaluate(train_set, verbose=2)
 
 if __name__ == '__main__':
-    model_training(verbose=True)
+    # model_training(verbose=True)
+    model_validation()
