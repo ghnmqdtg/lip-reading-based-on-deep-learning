@@ -81,6 +81,7 @@ def model_validation(verbose=True):
     model = tf.keras.models.load_model(config.PATH_WEIGHTS)
     model.evaluate(train_set, verbose=2)
 
+
 if __name__ == '__main__':
     # model_training(verbose=True)
     model_validation()
